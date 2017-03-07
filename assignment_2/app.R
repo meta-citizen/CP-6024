@@ -57,7 +57,7 @@ server <- function(input, output) {
     pl <- data.frame(pop = p,time = t)
     
     ggplot(data=pl, aes(pl$time, pl$pop)) +
-      geom_point(aes(size = pl$pop)) + geom_line() +
+      geom_point(aes(shape="16", size = log(pl$pop))) + geom_smooth(method = "lm", color = "black", linetype = "dashed", formula = y ~ poly(x,3)) +
       geom_smooth(method = "lm", formula = p ~ t) +
       theme(legend.position = "none") +
       xlab("Year") + ylab(input$a_type) +
