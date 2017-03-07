@@ -14,6 +14,7 @@ analysis_years <- data.frame(unique(ga_counties$YEAR))
 
 #
 ui <- fluidPage(
+    titlePanel("CP-6024: Assignment 2, Population Projections"),
     sidebarLayout(
       sidebarPanel(
         sliderInput(inputId = "base_year",
@@ -46,17 +47,22 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   source('proj_src.R')
-  
   output$yv_scatter <- renderPlot({
-      p_x = subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR >= input$base_year[1])$YEAR
-      p_y = subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR >= input$base_year[1])$VALUE
-    plot(
-        x = p_x,
-        y = p_y,
-        xlim = range(input$base_year[1]:input$base_year[2]),
-        ylim = range(min(p_y):max(p_y)),
-        xlab = "Year",
-        ylab = input$a_type)})
+    
+    if (input$proj_year == "2010") { var <- 2010 } else {var <- 2020 }
+    
+    p <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & between(YEAR, input$base_year[1], input$base_year[2]))$VALUE
+    t <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & between(YEAR, input$base_year[1], input$base_year[2]))$YEAR
+    
+    pl <- data.frame(pop = p,time = t)
+    
+    ggplot(data=pl, aes(pl$time, pl$pop)) +
+      geom_point(aes(size = pl$pop)) + geom_line() +
+      geom_smooth(method = "lm", formula = p ~ t) +
+      theme(legend.position = "none") +
+      xlab("Year") + ylab(input$a_type) +
+      xlim(input$base_year[1],var) + ylim(min(pl$pop),max(pl$pop)+(max(pl$pop)*0.05))
+  })
   output$pop_table = renderDataTable({
       subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR >= input$base_year[1])
   }, options = list(lengthMenu = c(5,10,15), pageLength = 5))
@@ -140,8 +146,7 @@ server <- function(input, output) {
   })
 }
 
-#TO DO: Integrate data loading and manipulation into source (.R) files to be called later
-#       Run projections into out_tab
+#TO DO: 
 #       If there is time plot each projection inorder to create a smooth curve using supsmu
 #       with interface for changing projection type
 
