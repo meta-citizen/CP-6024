@@ -1,0 +1,177 @@
+---
+title: "ASSIGNMENT 2"
+output: html_notebook
+---
+
+Load necessary libraries
+
+```{r}
+library(ggplot2)
+library(shiny)
+```
+
+Load Data from CSVs and Create Variables
+
+```{r}
+ga_counties <- read.csv('a01-gareis2003.txt')
+ga_proj <- read.csv('a40-gaprojected.txt')
+
+analysis_level <- data.frame("FIPS" = unique(ga_counties$FIPS), "AREANAME" = unique(ga_counties$AREANAME))
+analysis_type <-  data.frame("LINECODE" = unique(ga_counties$LINECODE), "LINETITLE" = unique(ga_counties$LINETITLE))
+analysis_years <- data.frame(unique(ga_counties$YEAR))
+
+default_base <- 1969
+default_launch <- 2003
+default_proj <- 2010
+
+#DEFAULT STATE:
+# Level - FIPS: 13001, Appling County GA
+# Type - LINECODE: 20, Population
+default_level <- 13001
+default_type <- 20
+
+#initialize dummy variables at 0 indexing
+#to allow for inputs from drop downs
+#TO DO CREATE LISTENERS
+#DEFAULT STATE MUST BE 0
+in_base <- 0
+in_launch <- 0
+in_level <- 0
+in_type <- 0
+in_proj <- 0
+```
+
+Create population projection functions
+
+```{r}
+#Simple Linear
+smp_linear <- function(pop_base, pop_launch, years, proj_years) {
+    rate = (pop_launch - pop_base)/years
+    pp <- (rate*proj_years)+pop_launch
+
+  return(data.frame(population = pp, rate = rate))
+}
+
+#Simple Geometric
+smp_geom <- function(pop_base, pop_launch, years, proj_years) {
+    rate <- log(pop_launch/pop_base)*(1/years)
+    pp <- pop_launch * exp(rate*proj_years)
+    
+    return(data.frame(population = pp, rate = rate))
+}
+
+#Simple Exp
+smp_exp <- function(pop_base, pop_launch, years, proj_years) {
+    rate <- ((pop_launch/pop_base)^(1/years))-1
+    pp <- pop_launch*(1+rate)^proj_years
+       
+    return(data.frame(population = pp, rate = rate))
+}
+
+#Line Fit Projections (Linear, Quadratic, Cubic)
+line_proj <- function() {
+    supsmu() #projection function
+}
+
+#Geometric 
+#Modified Exp
+mod_exp <- function(pop_launch, years, proj_years, pop_time, rate) {
+      return(population = pp, rate = rate)
+    }
+#Logistic
+#Constant Share
+c_share <- function(pop_j_t, pop_j_l, pop_i_l) {
+  pp = (pop_i_l/pop_j_l)*pop_j_t
+  
+  return(data.frame(population = pp, share = (pop_i_l/pop_j_l)))
+}
+#Shift Share
+s_share <- function(pop_j_b, pop_j_l, pop_j_t, pop_i_b, pop_i_l, years, proj_years) {
+    a = (pop_i_l/pop_j_l)
+    b = (pop_i_l/pop_j_l)-(pop_i_b/pop_j_b)
+    y = 1/years
+    z = proj_years
+    pp = (a + ((b*y)*z))*pop_j_t
+    
+    return(data.frame(population = pp, share = a))
+}
+#Growth Share
+g_share <- function(pop_j_b, pop_j_l, pop_j_t, pop_i_b, pop_i_l) {
+    a = pop_i_l-pop_i_b
+    b = pop_j_l-pop_j_b
+    c = pop_j_t-pop_j_l
+    pp = pop_i_l +((a/b)*c)
+    
+  return(data.frame(population = pp,share = (a/b)))
+}
+```
+
+Preprocessing of Variables
+
+```{r}
+#set analysis level
+if (in_level == 0) {
+  level <- default_level
+} else {
+  level <- in_level
+}
+
+#set projection type (population, economic etc)
+if (in_type == 0) {
+  type <- default_type
+} else {
+  type <- in_type
+}
+
+#set years
+if (in_base == 0 ) {
+  base <- default_base
+} else {
+  base <- in_base
+}
+
+if (in_launch == 0) {
+  launch <- default_launch
+} else {
+  launch <- in_launch
+}
+
+#set observation period
+if (in_launch - in_base == 0) {
+  obs_period <- default_launch - default_base
+} else {
+  obs_period <- in_launch - in_base
+}
+
+#set projection length
+if (in_proj - in_launch == 0) {
+  proj_period <- default_proj - default_launch
+} else {
+  proj_period <- in_proj - in_launch
+}
+
+#get base and launch data
+i_base <- subset(ga_counties, LINECODE == type & YEAR == base & FIPS == level)
+i_launch <- subset(ga_counties, LINECODE == type & YEAR == launch & FIPS == level)
+
+j_base <- subset(ga_counties, LINECODE == 20 & YEAR == base & FIPS == 13000)
+j_launch <- subset(ga_counties, LINECODE == 20 & YEAR == launch & FIPS == 13000)
+j_proj <- subset(ga_proj, DataType == 'Population' & Year == if (in_proj == 0) {default_proj} else {in_proj})
+```
+
+Invoke Functions
+
+```{r}
+if (FALSE) {
+smp_linear(i_base$VALUE, i_launch$VALUE, obs_period, proj_period)
+smp_geom(i_base$VALUE, i_launch$VALUE, obs_period, proj_period)
+smp_exp(i_base$VALUE, i_launch$VALUE, obs_period, proj_period)
+
+c_share(j_proj$Value, j_launch$VALUE, i_launch$VALUE)
+s_share(j_base$VALUE, j_launch$VALUE, j_proj$Value, i_base$VALUE, i_launch$VALUE, obs_period, proj_period)
+g_share(j_base$VALUE, j_launch$VALUE, j_proj$Value, i_base$VALUE, i_launch$VALUE)
+}
+
+
+```
+

@@ -1,0 +1,7 @@
+"DataType","FIPS","Year","Value"
+"Per capita personal income (dollars)",13000,2020,39000.00
+"Population",13000,2020,10844000.00
+"Employment",13000,2020,5422000.00
+"Per capita personal income (dollars)",13000,2010,35000.00
+"Population",13000,2010,9589000.00
+"Employment",13000,2010,4795000.00
