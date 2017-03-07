@@ -174,4 +174,15 @@ g_share(j_base$VALUE, j_launch$VALUE, j_proj$Value, i_base$VALUE, i_launch$VALUE
 
 
 ```
+```{r}
+p <- subset(ga_counties, FIPS == 13001 & LINECODE == 20)$VALUE
+t <- subset(ga_counties, FIPS == 13001 & LINECODE == 20)$YEAR-1969
+t2 <- (subset(ga_counties, FIPS == 13001 & LINECODE == 20)$YEAR)^2
+line_mod <- lm(p ~ t + t2)
+
+s <- data.frame(summary(line_mod)$coefficients, offset = i_launch$VALUE)
+#s_n <- data.frame(s$coefficients)
+
+i_launch$VALUE
+```
 

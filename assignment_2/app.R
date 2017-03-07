@@ -1,4 +1,5 @@
 library(ggplot2)
+library(dplyr)
 library(shiny)
 
 #Set Environment
@@ -62,6 +63,10 @@ server <- function(input, output) {
   output$proj_table = renderDataTable({
 
     if (input$proj_year == "2010") { var <- 2010 } else {var <- 2020 }
+    
+    p <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & between(YEAR, input$base_year[1], input$base_year[2]))$VALUE
+    t <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & between(YEAR, input$base_year[1], input$base_year[2]))$YEAR-1969
+    
     #Establish i and j table frames
     i_base <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR == input$base_year[1])
     i_launch <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR == input$base_year[2])
@@ -82,7 +87,18 @@ server <- function(input, output) {
                               i_launch$VALUE, 
                               input$base_year[2]-input$base_year[1], 
                               var-input$base_year[2]),
-                      NA,
+                      line_proj(p, 
+                                i_launch$VALUE, 
+                                t, 
+                                var-input$base_year[2]),
+                      quad_proj(p, 
+                                i_launch$VALUE, 
+                                t, 
+                                var-input$base_year[2]),
+                      cube_proj(p, 
+                                i_launch$VALUE, 
+                                t, 
+                                var-input$base_year[2]),
                       geometric(i_base$VALUE, 
                                 i_launch$VALUE, 
                                 input$base_year[2]-input$base_year[1], 
@@ -113,8 +129,9 @@ server <- function(input, output) {
                         )
                       )
     
-    out_tab <- data.frame(PROJECTION_TYPE = c("Simple Linear","Simple Geometric", "Simple Exponential", "Line Fit", "Geometric",
-                                              "Modified Exponential", "Logistic", "Constant Share", "Shift Share", "Growth Share"),
+    out_tab <- data.frame(PROJECTION_TYPE = c("Simple Linear","Simple Geometric", "Simple Exponential", "Linear Model", "Quadratic Model",
+                                              "Cubic Model", "Geometric", "Modified Exponential", "Logistic", "Constant Share", 
+                                              "Shift Share", "Growth Share"),
                           PROJECTION = tmp$population,
                           RATE = tmp$rate
     )

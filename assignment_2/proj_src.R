@@ -26,10 +26,47 @@ geometric <- function(pop_base, pop_launch, years, proj_years) {
 }
 
 #Line Fit Projections (Linear, Quadratic, Cubic)
-line_proj <- function() {
-  supsmu() #projection function
+#Linear Fit
+line_proj <- function(a_pop, pop_launch, years, proj_years) {
+  t  <- years
+  line_mod <- lm(a_pop ~ t)
+  
+  s <- data.frame(summary(line_mod)$coefficients, offset = pop_launch)
+  
+  rate = s$Estimate[2]
+  pp <- s$Estimate[1] + s$Estimate[2]*proj_years
+
+  return(data.frame(population = pp, rate = rate))
 }
 
+#Quadratic Fit
+quad_proj <- function(a_pop, pop_launch, years, proj_years){
+  t  <- years
+  t2 <- t^2
+  line_mod <- lm(a_pop ~ t+t2)
+  
+  s <- data.frame(summary(line_mod)$coefficients, offset = pop_launch)
+  
+  rate = NA
+  pp <- s$Estimate[1] + s$Estimate[2]*proj_years + s$Estimate[3]*proj_years^2
+  
+  return(data.frame(population = pp, rate = rate))  
+}
+
+#Cubic Fit
+cube_proj <- function(a_pop, pop_launch, years, proj_years){
+  t  <- years
+  t2 <- t^2
+  t3 <- t^3
+  line_mod <- lm(a_pop ~ t+t2+t3)
+  
+  s <- data.frame(summary(line_mod)$coefficients, offset = pop_launch)
+  
+  rate = NA
+  pp <- s$Estimate[1] + s$Estimate[2]*proj_years + s$Estimate[3]*proj_years^2 + s$Estimate[4]
+  
+  return(data.frame(population = pp, rate = rate))  
+}
 #Simple Exponential 
 smp_exp <- function(pop_base, pop_launch, years, proj_years) {
   rate <- log(pop_launch/pop_base)*(1/years)
@@ -45,8 +82,6 @@ mod_exp <- function(pop_base, pop_launch, years, proj_years, pop_time) {
     return(data.frame(population = pp, rate = rate))
 }
 #Logistic
-#p_t = p_l/(1+r(e^-limit*x))
-
 logistic <- function(pop_base, pop_launch, years, proj_years) {
   a <- 1.5*pop_launch
   b <- years

@@ -3,9 +3,9 @@ title: assignment_2
 account: meta-citizen
 server: shinyapps.io
 appId: 161679
-bundleId: 736407
+bundleId: 736409
 url: https://meta-citizen.shinyapps.io/assignment_2/
-when: 1488856875.84135
+when: 1488857025.00188
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: a01-gareis2003.txt|a40-gaprojected.txt|assignment_2.nb.html|assignment_2.Rmd
