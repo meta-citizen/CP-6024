@@ -29,7 +29,7 @@ ui <- fluidPage(
         selectInput(inputId = "proj_year", 
                     label = "Projection Year",
                     choices = c("2010",
-                                "2040"),
+                                "2020"),
                     selected = "2010"),
         selectInput(input = "proj_line", label = "Projection Line",
                     choices = c("Simple Linear", "Simple Geometric"))
@@ -61,13 +61,13 @@ server <- function(input, output) {
   }, options = list(lengthMenu = c(5,10,15), pageLength = 5))
   output$proj_table = renderDataTable({
 
-    if (input$proj_year == "2010") { var <- 2010 } else {var <- 2040 }
+    if (input$proj_year == "2010") { var <- 2010 } else {var <- 2020 }
     #Establish i and j table frames
     i_base <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR == input$base_year[1])
     i_launch <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR == input$base_year[2])
     
     j_base <- subset(ga_counties, LINECODE == 20 & YEAR == input$base_year[1] & FIPS == 13000)
-    j_launch <- subset(ga_counties, LINECODE == 20 & YEAR == input$base_year[1] & FIPS == 13000)
+    j_launch <- subset(ga_counties, LINECODE == 20 & YEAR == input$base_year[2] & FIPS == 13000)
     j_proj <- subset(ga_proj, DataType == 'Population' & Year == input$proj_year)
     
     tmp <- data.frame(rbind(smp_linear(i_base$VALUE, 
@@ -82,6 +82,11 @@ server <- function(input, output) {
                               i_launch$VALUE, 
                               input$base_year[2]-input$base_year[1], 
                               var-input$base_year[2]),
+                      NA,
+                      geometric(i_base$VALUE, 
+                                i_launch$VALUE, 
+                                input$base_year[2]-input$base_year[1], 
+                                var-input$base_year[2]),
                       mod_exp(i_base$VALUE,
                               i_launch$VALUE,
                               input$base_year[2]-input$base_year[1],
@@ -89,8 +94,23 @@ server <- function(input, output) {
                       logistic(i_base$VALUE, 
                                i_launch$VALUE, 
                                input$base_year[2]-input$base_year[1], 
-                               input$proj_year-input$base_year[2])
-                                )
+                               var-input$base_year[2]),
+                      c_share( j_proj$Value,
+                               j_launch$VALUE,
+                               i_launch$VALUE),
+                      s_share(j_base$VALUE,
+                              j_launch$VALUE,
+                              j_proj$Value,
+                              i_base$VALUE,
+                              i_launch$VALUE,
+                              input$base_year[2]-input$base_year[1],
+                              var-input$base_year[2]),
+                      g_share(j_base$VALUE,
+                              j_launch$VALUE,
+                              j_proj$Value,
+                              i_base$VALUE,
+                              i_launch$VALUE)
+                        )
                       )
     
     out_tab <- data.frame(PROJECTION_TYPE = c("Simple Linear","Simple Geometric", "Simple Exponential", "Line Fit", "Geometric",
