@@ -58,7 +58,8 @@ server <- function(input, output) {
     
     ggplot(data=pl, aes(pl$time, pl$pop)) +
       geom_point(aes(shape="16", size = log(pl$pop))) + geom_smooth(method = "lm", color = "black", linetype = "dashed", formula = y ~ poly(x,3)) +
-      geom_smooth(method = "lm", formula = p ~ t) +
+      geom_smooth(method = "lm", linetype = "solid", formula = y ~ x) +
+      geom_smooth(method = "lm", linetype = "solid", formula = y ~ poly(x,2)) +
       theme(legend.position = "none") +
       xlab("Year") + ylab(input$a_type) +
       xlim(input$base_year[1],var) + ylim(min(pl$pop),max(pl$pop)+(max(pl$pop)*0.05))

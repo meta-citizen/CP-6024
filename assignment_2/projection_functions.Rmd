@@ -1,0 +1,203 @@
+---
+title: "Projection Function Documentation"
+output: html_notebook
+---
+
+First you must load the environment necessary to perform the analysis. This includes loading the 2 .txt files
+that contain the necessary data.
+
+This notebook allows for the grader or student to access and manipulate the functions as a means of analyzing
+or grading them.
+
+```{r}
+library(nls2)
+
+ga_counties <- read.csv('a01-gareis2003.txt')
+ga_proj <- read.csv('a40-gaprojected.txt')
+
+analysis_level <- data.frame("FIPS" = unique(ga_counties$FIPS), "AREANAME" = unique(ga_counties$AREANAME))
+analysis_type <-  data.frame("LINECODE" = unique(ga_counties$LINECODE), "LINETITLE" = unique(ga_counties$LINETITLE))
+analysis_years <- data.frame(unique(ga_counties$YEAR))
+
+default_base <- 1969
+default_launch <- 2003
+default_proj <- 2010
+
+#DEFAULT STATE:
+# Level - FIPS: 13001, Appling County GA
+# Type - LINECODE: 20, Population
+default_level <- 13001
+default_type <- 20
+
+a <- data.frame( pop = subset(ga_counties, FIPS == default_level & LINECODE == default_type)$VALUE,
+                 year = subset(ga_counties, FIPS == default_level & LINECODE == default_type)$YEAR-1968)
+a <- a[with(a, order(year)),]
+
+a_j <- data.frame( pop = subset(ga_counties, FIPS == 13000 & LINECODE == default_type)$VALUE,
+                 year = subset(ga_counties, FIPS == 13000 & LINECODE == default_type)$YEAR-1968)
+a_j <- a_j[with(a, order(year)),]
+
+b <- data.frame(subset(ga_proj, Year == default_proj & DataType == 'Population'))
+
+x = data.frame(a$year)
+y = data.frame(a$pop)
+
+```
+
+Models must be declared and constructed
+
+LINEAR MODELS:
+To construct these models the lm (linear model builder) is used to construct a simple polynomial
+linear fit. a+bx, a+b_1x+b_2x^2, ..., a+b_1x+b_2x^2+...+b_n-1x^n-1+b_nx^n the model is buildt
+and a prediction run from a time t+1 out to the projection distance (p_d).
+
+```{r}
+  #Linear
+  linear_proj <- function (x, y, t_l, p_d) {
+    lin.mod <- lm(y ~ x)
+    lin.pre <- predict(lin.mod, newdata = data.frame(x = seq(t_l+1,t_l+p_d)))
+    return(lin.pre)
+  }
+  
+  #Quadratic
+  quad_proj <- function (x, y, t_l, p_d) {
+    qua.mod <- lm(formula = y ~ poly(x,2))
+    qua.pre <- predict(qua.mod, newdata = data.frame(x = seq(t_l,t_l+p_d)))    
+    return(qua.pre)
+  }
+
+  #Cubic
+  cube_proj <- function(x, y, t_l, p_d) {
+    cub.mod <- lm(formula = y ~ poly(x,3))
+    cub.pre <- predict(cub.mod, newdata = data.frame(x = seq(t_l,t_l+p_d)))
+    return(cub.pre)
+  }
+```
+
+NONLINEAR MODELS
+These models are constructed from the nls (non linear least squares model builder). Given that
+the data has very small residuals nls2 was used to brute force the finding of the method. This allows
+for the construction of geometric, expoential and logistic growth models.
+
+The method for assembly is as follows
+
+(1) Lineraize the model to establish residual values  from which to estimate initial fitting values
+  Lineraized models, as the name suggests simplify the model into some form of log(y) ~ x
+    Simple Exponential: log(y)/log(y_b) ~ x
+    Simple Geometric:   log(y) - log(y_b) ~ x
+    Modified Expoential:log(y/y_b) ~ x
+    Logistic:           log(1/y-c) ~ x || c = 1/(1.5*y_l)
+(2) Create nls2 model and projections
+
+Projections are run from 1 to a number of years, p_d, from launch. i.e. 2010 = 7.
+p_d is calculated as projection_year - launch_year.
+
+The carrying capacity is considered to be 1.5 * y_l as instructions indicate.
+
+```{r}
+  #Simple Exponential
+  s_exp <- function(x, y, t_l, p_d) {
+    s_e.0 <- lm(log(y[2:length(y)]/log(y[1])) ~ x[2:length(x)])
+    start <- list(a=exp(coef(s_e.0)[1]), b=coef(s_e.0)[2], c = y[length(y)]*1.5)
+  
+    s_e.mod <- nls2(y ~ a * exp( b * x ), data = data.frame(y), start = start, algorithm = "brute-force")
+    s_e.pre <- predict(s_e.mod, newdata = data.frame(x = seq(1,p_d)))    
+    return(s_e.pre)
+  }
+
+  #Simple Geometric
+  s_g <- function(x, y, t_l, p_d) {
+    s_ge.0 <- lm((log(y[2:length(y)]-(y[1])) ~ x[2:length(x)]))
+    start <- list(a=exp(coef(s_ge.0)[1]), b=coef(s_ge.0)[2], c = y[length(y)]*1.5)
+    
+    s_ge.mod <- nls2(y ~ a * (1 + b)^x + c, data = data.frame(y), start = start, algorithm = "brute-force")
+    s_ge.pre <- predict(s_ge.mod, newdata = data.frame(x = seq(1,p_d))) 
+    return(s_ge.pre)
+  }
+  
+  #Modified Exponential
+  m_e <- function(x, y, t_l, p_d) {
+    m_e.0 <- lm(log(y[2:length(y)]/log(y[1])) ~ x[2:length(x)])
+    start <- list(a=exp(coef(m_e.0)[1]), b=coef(m_e.0)[2], c = y[length(y)]*1.5)
+    
+    m_e.mod <- nls2(y ~ a * exp( b * x ), data = data.frame(y), start = start, algorithm = "brute-force")
+    m_e.pre <- predict(m_e.mod, newdata = data.frame(x = seq(1,p_d)))   
+    return(m_e.pre)
+  }
+  
+  #Logistic
+  lo <- function(x, y, t_l, p_d) {
+    c.0 = 1/(1.5*y[length(y)])
+    lo.0 <- lm(log((1/y) - c.0) ~ x)
+  
+    summary(lo.0)
+    start <- data.frame(a = exp(coef(lo.0)[1]), b = exp(coef(lo.0)[2]), c = c.0)
+  
+    lo.mod <- nls2(y ~ 1/(c+a*(b^x)), data.frame(y), start = start, algorithm = "brute-force")
+    lo.pre <- predict(lo.mod, newdata = data.frame(x = seq(1,p_d))) 
+    return(lo.pre)
+  }
+```
+
+RATIO PROJECTION METHODS
+Due to challenges in creating functioning models for the ratio projection methods these
+methods have been solved numerically per the equations given in class.
+  Constant Share: P_it = (P_il/P_jl)*P_jt
+  Shift Share: P_it = [(P_il/P_jl)+((P_il/P_jl)-(P_ib/P_jb))*(1/(t_l-t_b))*z]
+  Growth Share: P_it = P_il+[(P_il-P_ib)/(P_jl- P_jb)]*(P_jt-P_jl)
+
+Since these equations are solved numerically these functions are not graphed nor is any attempt to graph them 
+made as any part of this project due to challenges with R and graphing this kind of non-modeled data in a complex
+visualization.
+
+```{r}
+  #Constant Share
+  c_s <- function(a, a_j, b) {
+    c_sp <- (a$pop[length(a$pop)]/a_j$pop[length(a_j$pop)])*b$Value
+    return(c_sp)
+  }
+  #Shift Share
+  s_s <- function (a, a_j, b, p_d){
+    s_l <- a$pop[length(a$pop)]/a_j$pop[length(a_j$pop)] #launch share
+    d_s <- (a$pop[length(a$pop)]/a_j$pop[length(a_j$pop)])-(a$pop[1]/a_j$pop[1]) #difference of share
+    i_t <- 1/a$year[length(a$year)] #1/time
+    
+    s_sp <- (s_l+(d_s*i_t*p_d))*b$Value
+    return(s_sp)
+  }
+  #Share of Growth
+  s_gr <- function (a, a_j, b){
+    d_i <- a$pop[length(a$pop)] - a$pop[1]
+    d_j <- a_j$pop[length(a_j$pop)] - a_j$pop[1]
+    d_t <- b$Value - a_j$pop[length(a_j$pop)]
+    
+    s_gp <- a$pop[length(a$pop)] + (d_i/d_j)*(d_t)
+    return(s_gp)
+  }
+```
+
+```{r}
+te_l <- linear_proj(a$year, a$pop, a$year[length(a$year)], 10)
+te_q <- quad_proj(a$year, a$pop, a$year[length(a$year)], 10)
+te_c <- cube_proj(a$year, a$pop, a$year[length(a$year)], 10)
+
+te_se <- s_exp(a$year, a$pop, a$year[length(a$year)], 10)
+te_sg <- s_g(a$year, a$pop, a$year[length(a$year)], 10)
+te_me <- m_e(a$year, a$pop, a$year[length(a$year)], 10)
+te_lo <- lo(a$year, a$pop, a$year[length(a$year)], 10)
+
+te_cs <- c_s(a, a_j, b)
+te_ss <- s_s(a, a_j, b, 10)
+te_sgr <- s_gr(a, a_j, b)
+
+te_l[length(te_l)]
+te_q[length(te_q)]
+te_c[length(te_c)]
+te_se[length(te_se)]
+te_me[length(te_me)]
+te_lo[length(te_lo)]
+te_cs[length(te_cs)]
+te_ss
+te_sgr
+```
+
