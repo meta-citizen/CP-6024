@@ -32,11 +32,9 @@ default_type <- 20
 a <- data.frame( pop = subset(ga_counties, FIPS == default_level & LINECODE == default_type)$VALUE,
                  year = subset(ga_counties, FIPS == default_level & LINECODE == default_type)$YEAR-1968)
 a <- a[with(a, order(year)),]
-
 a_j <- data.frame( pop = subset(ga_counties, FIPS == 13000 & LINECODE == default_type)$VALUE,
                  year = subset(ga_counties, FIPS == 13000 & LINECODE == default_type)$YEAR-1968)
 a_j <- a_j[with(a, order(year)),]
-
 b <- data.frame(subset(ga_proj, Year == default_proj & DataType == 'Population'))
 
 x = data.frame(a$year)
@@ -191,13 +189,8 @@ te_ss <- s_s(a, a_j, b, 10)
 te_sgr <- s_gr(a, a_j, b)
 
 te_l[length(te_l)]
-te_q[length(te_q)]
-te_c[length(te_c)]
-te_se[length(te_se)]
-te_me[length(te_me)]
-te_lo[length(te_lo)]
-te_cs[length(te_cs)]
-te_ss
-te_sgr
 ```
-
+ 
+```{r}
+ggplot(a, aes(a$year, a$pop)) + geom_point(aes(size = a$pop))
+```
