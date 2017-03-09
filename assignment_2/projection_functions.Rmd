@@ -188,9 +188,9 @@ te_cs <- c_s(a, a_j, b)
 te_ss <- s_s(a, a_j, b, 10)
 te_sgr <- s_gr(a, a_j, b)
 
-te_l[length(te_l)]
+summary(te_l)
 ```
  
 ```{r}
-ggplot(a, aes(a$year, a$pop)) + geom_point(aes(size = a$pop))
+ggplot(a, aes(a$year, a$pop)) + geom_point(aes(size = a$pop)) + geom_smooth(method = "glm", formula = log(a$pop)~a$year)
 ```
