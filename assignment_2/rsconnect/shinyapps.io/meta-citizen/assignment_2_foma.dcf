@@ -1,0 +1,11 @@
+name: assignment_2_foma
+title: assignment_2_foma;
+account: meta-citizen
+server: shinyapps.io
+appId: 162646
+bundleId: 741065
+url: https://meta-citizen.shinyapps.io/assignment_2_foma/
+when: 1489110494.90753
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app_old.R

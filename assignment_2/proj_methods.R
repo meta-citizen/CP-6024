@@ -23,9 +23,9 @@
   #Simple Exponential
   s_exp <- function(x, y, t_l, p_d) {
     s_e.0 <- lm(log(y[2:length(y)]/log(y[1])) ~ x[2:length(x)])
-    start <- list(a=exp(coef(s_e.0)[1]), b=coef(s_e.0)[2], c = y[length(y)]*1.5)
+    start <- list(a=exp(coef(s_e.0)[1]), b=coef(s_e.0)[2], c = y[length(y)])
     
-    s_e.mod <- nls2(y ~ a * exp( b * x ), data = data.frame(y), start = start, algorithm = "brute-force")
+    s_e.mod <- nls2(y ~ c * exp( b * x ), data = data.frame(y), start = start, algorithm = "brute-force")
     #s_e.pre <- predict(s_e.mod, newdata = data.frame(x = seq(1,p_d)))    
     return(s_e.mod)
   }
@@ -46,7 +46,7 @@
     m_e.0 <- lm(log(y[2:length(y)]/log(y[1])) ~ x[2:length(x)])
     start <- list(a=exp(coef(m_e.0)[1]), b=coef(m_e.0)[2], c = y[length(y)]*1.5)
     
-    m_e.mod <- nls2(y ~ a * exp( b * x ), data = data.frame(y), start = start, algorithm = "brute-force")
+    m_e.mod <- nls2(y ~ c+(a * exp( b * x )), data = data.frame(y), start = start, algorithm = "brute-force")
     #m_e.pre <- predict(m_e.mod, newdata = data.frame(x = seq(1,p_d)))   
     return(m_e.mod)
   }
