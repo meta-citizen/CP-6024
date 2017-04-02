@@ -1,6 +1,6 @@
 BEGIN;
 
-	CREATE VIEW data.atl_total AS
+	CREATE OR REPLACE VIEW data.atl_total AS
 
 	SELECT
 		year,
@@ -10,7 +10,7 @@ BEGIN;
 		data.msa_base
 	WHERE
 		msa = '12060'
-		AND naics ~ '[0-9]{2}.(000)'
+		AND naics ~ '[0-9]{2}(0000)'
 	ORDER BY
 		year,
 		naics

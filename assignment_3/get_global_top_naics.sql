@@ -1,6 +1,6 @@
 BEGIN;
 
-CREATE VIEW data.usa_total AS 
+CREATE OR REPLACE VIEW data.usa_total AS 
 
 SELECT
 	year,
@@ -9,7 +9,7 @@ SELECT
 FROM
 	data.cbp_msa_agg
 WHERE
-	naics_fix ~ '[0-9]{2}.(000)'
+	naics_fix ~ '[0-9]{2}(0000)'
 ORDER BY
 	year,
 	naics
