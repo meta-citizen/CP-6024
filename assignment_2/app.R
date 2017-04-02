@@ -46,6 +46,7 @@ server <- function (input, output) {
   #Call Function Source
   source("proj_methods.R")
 
+<<<<<<< Updated upstream
   a <- reactive({ n <- data.frame( pop = subset(ga_counties, AREANAME == input$area_ctrl & LINETITLE == input$analysis_type)$VALUE,
                    year = subset(ga_counties, AREANAME == input$area_ctrl & LINETITLE == input$analysis_type)$YEAR-1968)
                   n <- n[with(n, order(year)),]
@@ -59,6 +60,32 @@ server <- function (input, output) {
   b.20 <- data.frame(subset(ga_proj, Year == 2020 & DataType == 'Population'))
   
   tmp.mod <- reactive({ 
+=======
+server <- function(input, output) {
+  source('proj_src.R')
+  output$yv_scatter <- renderPlot({
+    
+    if (input$proj_year == "2010") { var <- 2010 } else {var <- 2020 }
+    
+    p <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & between(YEAR, input$base_year[1], input$base_year[2]))$VALUE
+    t <- subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & between(YEAR, input$base_year[1], input$base_year[2]))$YEAR
+    
+    pl <- data.frame(pop = p,time = t)
+    
+    ex_lm <- lm(p ~ t)
+    
+    ggplot(data=pl, aes(pl$time, pl$pop)) +
+      geom_point(aes(size = pl$pop)) + 
+      theme(legend.position = "none") +
+      geom_line(pl, aes(pl$time, fitted(ex_lm), linetype = "dashed")) +
+      xlab("Year") + ylab(input$a_type) +
+      xlim(input$base_year[1],var) + ylim(min(pl$pop),max(pl$pop)+(max(pl$pop)*0.05))
+  })
+  output$pop_table = renderDataTable({
+      subset(ga_counties, AREANAME == input$a_level & LINETITLE == input$a_type & YEAR >= input$base_year[1])
+  }, options = list(lengthMenu = c(5,10,15), pageLength = 5))
+  output$proj_table = renderDataTable({
+>>>>>>> Stashed changes
 
       lp <- linear_proj(a()$year, a()$pop, input$year_ctrl[2]-1968, 2010-input$year_ctrl[2])
       qp <- quad_proj(a()$year, a()$pop, input$year_ctrl[2]-1968, 2010-input$year_ctrl[2])

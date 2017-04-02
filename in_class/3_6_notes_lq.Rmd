@@ -1,0 +1,102 @@
+---
+title: "ECON ANALYSIS"
+output: html_notebook
+---
+
+Base Theory and Loation Quotient
+
+GOALS:
+  1 - Define Base Theory
+  2 - Apply Base Theory
+  3 - Calculate LQ and Basic Employment
+  4 - Shift Share Economic Method
+  
+  Want to be able to define how various economies and industries are changing
+  and how.
+  
+  Location Quotient (LQ): What does an area specialize in
+  
+  Econ Shift Share: What are the shifts in specialization over time
+  
+  Base Theory: The economy is made up as two components
+    1: Basic Sector - Export or Non-Local Sector. Products produced in an area
+        that are then sold elsewhere. Therefore income comes into the economy
+    2: Non-Basic - Sells within the region and recirculates income. Exists to serve
+        the basic economy
+
+  Economic Base Multiplier (BM)
+    How much employment is generated from the creation of 1 basic sector job
+    
+    We assume BM is constant and can be projected forward.
+    
+    BM = e_t/b_t
+
+    Govt. is considered basic employment as it brings in money that supports
+    non basic services in an are.
+    
+    To determine econmic base we must calculate the number of jobs in an area. Sometimes
+    declining jobs is not always a sign of a declining sector.
+    
+    LQ Analysis
+      If an economy specializes in a specific sector over the basline of the reference economy
+        then a reference will show as a value greater than 1. If LQ = 1 all demand is being
+        met in the local economy. If LQ > 1 then outputs are being exported and jobs related
+        to those export is calculated for the amount over 1. 
+      Compare local production in an industry to number of jobs in a reference economy
+      LQ = local share / national share
+      
+      LQ_i = (e_i/e) / (E_i/E)
+      
+      e_lq_1 = e*(E_i/E) this gets us to LQ = 1
+      
+      basic employment = e_i - e_lq_i = e_i = (e*(E_i/E))
+      
+      Assumes that local economy reflects the performance and behavior of reference economy
+      Assumes that there is constant demand across space. There are variations in local demand
+        that do not match reference economy (.: LQ > 1 may not indicate an export)
+
+        
+```{r}
+naics_data <- read.csv('sf_location_quotient_raw.csv')
+naics_data 
+```
+
+e = Employment in a sector in a region
+E = Employmnet in a sector national
+
+i = industry
+
+```{r}
+
+naics_data$lq_i <- (naics_data$sf_share/naics_data$sf_share[1])/(naics_data$us_share/naics_data$us_share[1])
+
+i <- 1
+print(length(naics_data$industry))
+for (i in 1:length(naics_data$industry)) {
+    print(naics_data$lq_i[i])
+    if (is.na(naics_data$lq_i[i])) {
+      naics_data$basic[i] <- 0
+      naics_data$n_basic[i] <- 0
+    }
+    else if (naics_data$lq_i[i] > 1) {
+      #print("I am in 1")
+      naics_data$basic[i] <- naics_data$sf_val[i]-(naics_data$sf_val[1]*(naics_data$us_val[i]/naics_data$us_val[1]))
+      naics_data$n_basic[i] <- naics_data$sf_val[i] - naics_data$basic[i]
+    }
+    else {
+      #print("I am in 2")
+      naics_data$basic[i] <- 0
+      naics_data$n_basic[i] <- naics_data$sf_val[i]
+    }
+    i = i + 1
+}
+
+naics_data
+
+b_sum = sum(naics_data$basic[2:length(naics_data$basic)])
+n_sum = sum(naics_data$n_basic[2:length(naics_data$n_basic)])
+basic_mul = n_sum/b_sum
+
+basic_mul
+```
+

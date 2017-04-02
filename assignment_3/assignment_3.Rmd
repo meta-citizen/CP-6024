@@ -1,0 +1,43 @@
+---
+title: "Assignment 3"
+output: html_notebook
+---
+
+Create Data Environment
+
+cbp_atl is the naics data for the Atlanta MSA (msa = '12060') for years 2007 through 2014 with the field empflag_decode representing the sum total (or estimated total) employment for a given naics code for a given year. The US total though represents the aggregate of each naics across ALL MSAs for a given year (sql: select sum(empflag_decode) from cbp_msa). Thus this data contains only three columns (other than the id identifier). These are (1) year, (2) naics, (3) employment (empflag_decode)
+
+The data as created and stored in a pair of database tables (provided here as .csv files) and the processing environment is setup such that the data is well ordered. The ordering for both the Atlanta MSA and total US MSA table is to order by year then naics ascending. This means produced unit vectors will always proceed down the naics code list from 2007 to 2014.
+
+```{r}
+library(tibble)
+library(dplyr)
+library(forecast)
+
+e_tbl <- as_tibble(read.csv('econ_table.csv'))
+
+naics <- as.vector(e_tbl$naics)
+
+i = 1
+l = length(e_tbl$naics)
+
+
+for (i in 1:l) {
+    tmp <- as_tibble(subset(e_tbl, e_tbl$naics == e_tbl$naics[[i]]))
+
+    y = tmp$msa_total #unit vector of employment values
+    x = tmp$year      #unit vector of years
+    p = max(tmp$year) #launch year
+    n_a = as.vector(tmp$naics[length(tmp$naics)])
+    
+    n.mod <- lm(y ~ x)
+    n.pre <- round(predict(n.mod, newdata = data.frame( x = seq(p, p+7))),0)
+
+    o_pre <- n.pre[[length(n.pre)]]
+    o_diff <- (n.pre[[length(n.pre)]] - tmp$msa_total[[length(tmp$msa_total)]]
+    o_rate <- n.pre[[length(n.pre)]] - tmp$msa_total[[length(tmp$msa_total)]])/tmp$msa_total[[length(tmp$msa_total)]]
+  }
+
+out
+```
+
