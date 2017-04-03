@@ -1,0 +1,151 @@
+---
+title: "Assignment 3"
+output: html_notebook
+---
+
+```{r}
+library(tibble)
+library(dplyr)
+library(reshape2)
+
+global <- read.csv('usa_msa_total.csv')
+local <- read.csv('atl_msa_total.csv')
+
+```
+
+```{r}
+length(unique(local$naics))
+```
+
+```{r}
+i = 1
+l = length(unique(local$naics))
+
+l_out <- data.frame(naics = character(), emp_new = integer(), coef = numeric())
+
+l_out
+for (i in 1:l) {
+    l_tmp <- data.frame(subset(local, local$naics == local$naics[i]))
+    
+    y = l_tmp$employment  #unit vector of employment values
+    x = l_tmp$year        #unit vector of years
+    p = max(l_tmp$year)   #launch year
+    d_x = max(l_tmp$year)- min(local$year)
+    
+    n_a = as.character(local$naics[i])
+    
+    n.mod <- lm(y ~ x - 1)
+    n.pre <- round(predict(n.mod, newdata = data.frame( x = p + d_x)),0)
+
+    l_out <- data.frame(rbind(l_out, cbind( naics = n_a, emp_new = as.integer(n.pre), coef = n.mod[[1:1]])))
+    }
+
+summary(n.mod)
+l_out <- data.frame(naics = as.character(l_out$naics), emp_new = as.integer(as.character(l_out$emp_new)), 
+                    coef = round(as.numeric(as.character(l_out$coef)),3))
+
+l_out
+
+```
+
+```{r}
+global$global_share <- global$usa_employment/global[which(global$naics == '0'),]$usa_employment
+
+j = 1
+m = length(unique(global$naics))
+
+g_out <- data.frame(naics = character(), emp_new = integer(), coef = numeric())
+
+for (j in 1:m) {
+  g_tmp <- data.frame(global[which(global$naics == global$naics[j]),])
+  
+  g_y = g_tmp$usa_employment
+  g_x = g_tmp$year
+  g_p = max(g_tmp$year)
+  gd_x = max(g_tmp$year)- min(g_tmp$year)
+  
+  g_n_a = as.character(global$naics[j])
+  
+  g.mod <- lm(g_y ~ g_x - 1)
+  g.pre <- round(predict(g.mod, newdata = data.frame( g_x = g_p + gd_x)),0)
+  
+  g_out <- data.frame(rbind(g_out, cbind( naics = g_n_a, emp_new = as.integer(g.pre), coef = g.mod[[1:1]])))
+}
+
+g_out <- data.frame(naics = as.character(g_out$naics), emp_new = as.integer(as.character(g_out$emp_new)), 
+                    coef = round(as.numeric(as.character(g_out$coef)),3))
+
+```
+
+```{r}
+emp_b <- subset(local, local$year == min(local$year))
+emp_l <- subset(local, local$year == max(local$year))
+
+gemp_b <- subset(global, global$year == min(global$year))
+gemp_l <- subset(global, global$year == max(global$year))
+
+a <- data.frame( naics = unique(local$naics), base_employment = emp_b$employment, launch_employment = emp_l$employment, 
+                  proj_employment = l_out$emp_new )
+g <- data.frame( naics = unique(global$naics), base_employment = gemp_b$usa_employment, launch_employment = gemp_l$usa_employment,
+                  proj_employment = g_out$emp_new )
+
+a$growth <- a$launch_employment - a$base_employment
+a$proj_growth <- a$proj_employment - a$launch_employment
+a$conf <- (1+(a$growth/a$launch_employment))*a$launch_employment
+
+a$base_share <- a$base_employment/subset(local, local$year == min(local$year) & local$naics == '0')$employment
+a$launch_share <- a$launch_employment/subset(local, local$year == max(local$year) & local$naics == '0')$employment
+a$proj_share <- a$proj_employment/l_out[which(l_out$naics == '0'),]$emp_new
+
+a$launch_rate <- a$growth/a$base_employment
+a$proj_rate <- a$proj_growth/a$launch_employment
+
+g$growth <- g$launch_employment - g$base_employment
+g$proj_growth <- g$proj_employment - g$launch_employment
+
+g$base_share <- g$base_employment/global[which(global$year == min(global$year) & global$naics == '0'),]$usa_employment
+g$launch_share <- g$launch_employment/global[which(global$year == max(global$year) & global$naics == '0'),]$usa_employment
+g$proj_share <- g$proj_employment/g_out[which(g_out$naics == '0'),]$emp_new
+
+g$launch_rate <- g$growth/g$base_employment
+g$proj_rate <- g$proj_growth/g$launch_employment
+
+a$lq_base <- a$base_share/g[which(g$naics == a$naics),]$base_share
+a$lq_launch <- a$launch_share/g[which(g$naics == a$naics),]$launch_share
+a$lq_proj <- a$proj_share/g[which(g$naics == a$naics),]$proj_share
+
+a$coef <- l_out$coef
+a$c_t <- (a$base_employment-a$launch_employment)/a$launch_employment
+
+```
+
+```{r}
+
+a$bb_emp <- ifelse(a$lq_base >= 1, 
+                   a$base_employment - (a[which(a$naics == '0'),]$base_employment*g[which(g$naics == a$naics),]$base_share), 0)
+a$lb_emp <- ifelse(a$lq_launch >= 1, 
+                   a$launch_employment - (a[which(a$naics == '0'),]$launch_employment*g[which(g$naics == a$naics),]$launch_share), 0)
+a$pb_emp <- ifelse(a$lq_proj >= 1, 
+                   a$proj_employment - (a[which(a$naics == '0'),]$proj_employment * g[which(g$naics == a$naics),]$proj_share), 0)
+
+a
+```
+
+```{r}
+b_mul <- a[which(a$naics == 0),]$base_employment/sum(a$bb_emp)
+l_mul <- a[which(a$naics == 0),]$launch_employment/sum(a$lb_emp)
+p_mul <- a[which(a$naics == 0),]$proj_employment/sum(a$pb_emp)
+```
+
+```{r}
+c <- data.frame(naics = a$naics)
+c$b_ngc <- a$base_employment*g$launch_rate
+c$b_imc <- a$base_employment*(g$launch_rate - as.integer(g[which(g$naics == '0'),]$launch_rate))
+c$b_lfc <- round(a$base_employment*(a$launch_rate-g$launch_rate),1)
+c$abs_change <- c$b_ngc + c$b_imc + c$b_lfc
+c$shift_share <- round(c$b_lfc/a[which(a$naics == c$naics),]$base_employment,3)
+
+c
+
+```
+
